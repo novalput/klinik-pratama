@@ -14,7 +14,11 @@
 @endphp
 
 <div class="max-w-6xl mx-auto p-4 md:p-8 space-y-6" 
-     x-data="medicalRecordsHandler({{ json_encode($visits) }}, {{ json_encode($currentUser) }})">
+    x-data="{ 
+        ...medicalRecordsHandler({{ json_encode($visits) }}, {{ json_encode($currentUser) }}),
+        exportModalOpen: false,
+        selectedExportIds: [] 
+    }">
 
     {{-- LOGIC: Tentukan Route Kembali berdasarkan Role (Tetap Sama) --}}
     @php
@@ -26,12 +30,25 @@
         } elseif ($role === 'nakes') {
             $backRoute = route('nakes.datapasien');
         } elseif ($role === 'staf_administrasi') {
-            $backRoute = route('staff_administrasi.datapasien');
+            $backRoute = route('staff_administrasi.datapasien.index');
         } elseif ($role === 'admin') {
             $backRoute = route('admin.patient.index');
         }
     @endphp
 
+    @if (session('success'))
+        <div class="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl shadow-sm flex items-center gap-3 animate-fade-in-down">
+            <i class="fa-solid fa-circle-check text-xl"></i>
+            <div>
+                <span class="font-bold block">Berhasil!</span>
+                <span class="text-sm">{{ session('success') }}</span>
+            </div>
+            {{-- Tombol Close (Opsional) --}}
+            <button onclick="this.parentElement.remove()" class="ml-auto text-green-500 hover:text-green-700">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    @endif
     {{-- HEADER & NAVIGASI (Tetap Sama) --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -47,12 +64,22 @@
             </p>
         </div>
 
-        @if(Auth::user()->canEditAdministrasiData())
-        <a href="{{ route('visits.create') }}?patient_id={{ $patient->id }}" 
-           class="bg-[#5DB8D8] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#4A9FBD] shadow-lg transition-all flex items-center gap-2">
-            <i class="fa-solid fa-plus"></i> Tambah Kunjungan
-        </a>
-        @endif
+        <div class="flex gap-2">
+            {{-- TOMBOL EXPORT (BARU) --}}
+            <button @click="exportModalOpen = true; selectedExportIds = visits.map(v => v.id)" 
+                class="bg-white text-gray-700 border border-gray-300 px-4 py-3 rounded-xl font-bold hover:bg-gray-50 shadow-sm transition-all flex items-center gap-2">
+                <i class="fa-solid fa-print"></i> 
+                <span class="hidden md:inline">Cetak Rekam Medis</span>
+            </button>
+
+            {{-- Tombol Tambah Kunjungan --}}
+            @if(Auth::user()->canEditAdministrasiData())
+            <a href="{{ route('visits.create') }}?patient_id={{ $patient->id }}" 
+               class="bg-[#5DB8D8] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#4A9FBD] shadow-lg transition-all flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Tambah Kunjungan
+            </a>
+            @endif
+        </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -89,7 +116,7 @@
                             <template x-for="visit in visits" :key="visit.id">
                                 <option :value="visit.id" 
                                         class="text-gray-800"
-                                        x-text="formatDate(visit.visit_date) + ' - ' + (visit.diagnosis_icd10 || 'Belum Diagnosa')">
+                                        x-text="formatDate(visit.visit_date) + ' - ' + (visit.medical_record.diagnosis_icd10 || 'Belum Diagnosa')">
                                 </option>
                             </template>
                         </select>
@@ -244,6 +271,82 @@
                 </div>
             </template>
         </div>
+
+        {{-- ============================================= --}}
+        {{-- MODAL EXPORT PDF (LETAKKAN DI PALING BAWAH SEBELUM ENDSECTION) --}}
+        {{-- ============================================= --}}
+        <template x-if="exportModalOpen">
+            <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                {{-- Backdrop --}}
+                <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="exportModalOpen = false"></div>
+                
+                {{-- Modal Content --}}
+                <div class="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                        <h3 class="font-bold text-gray-800 text-lg">Cetak Rekam Medis</h3>
+                        <button @click="exportModalOpen = false" class="text-gray-400 hover:text-gray-600">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <form action="{{ route('export.medical_record') }}" method="POST" target="_blank">
+                        @csrf
+                        <input type="hidden" name="patient_id" value="{{ $patient->id }}">
+                        
+                        <div class="p-6 max-h-[60vh] overflow-y-auto">
+                            <p class="text-sm text-gray-500 mb-4">Pilih kunjungan yang ingin dicetak ke dalam PDF:</p>
+                            
+                            {{-- Select All Toggle --}}
+                            <div class="flex items-center mb-3 pb-3 border-b border-gray-100">
+                                <input type="checkbox" id="selectAll" 
+                                    {{-- LOGIKA 1: Otomatis Checked jika jumlah ID yang dipilih SAMA DENGAN jumlah total Kunjungan --}}
+                                    :checked="visits.length > 0 && selectedExportIds.length === visits.length"
+                                    
+                                    {{-- LOGIKA 2 (Opsional): Tampilkan tanda 'strip' (-) jika baru terpilih sebagian --}}
+                                    :indeterminate="selectedExportIds.length > 0 && selectedExportIds.length < visits.length"
+
+                                    {{-- LOGIKA 3: Saat diklik, lakukan Select All atau Deselect All --}}
+                                    @change="$el.checked ? selectedExportIds = visits.map(v => v.id) : selectedExportIds = []"
+                                    
+                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                
+                                <label for="selectAll" class="ml-2 text-sm font-bold text-gray-700 cursor-pointer">
+                                    Pilih Semua 
+                                    {{-- Menampilkan counter (opsional) --}}
+                                    <span class="text-xs font-normal text-gray-500" x-text="'(' + selectedExportIds.length + '/' + visits.length + ')'"></span>
+                                </label>
+                            </div>
+
+                            {{-- List Kunjungan Checkbox --}}
+                            <div class="space-y-2">
+                                <template x-for="visit in visits" :key="visit.id">
+                                    <label class="flex items-start p-3 rounded-lg border border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors">
+                                        <input type="checkbox" name="visit_ids[]" :value="visit.id" x-model="selectedExportIds"
+                                            class="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                        <div class="ml-3">
+                                            <span class="block text-sm font-bold text-gray-800" x-text="formatDateFull(visit.visit_date)"></span>
+                                            <span class="block text-xs text-gray-500" x-text="visit.medical_record.diagnosis_icd10 || 'Belum Diagnosa'"></span>
+                                        </div>
+                                    </label>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+                            <button type="button" @click="exportModalOpen = false" 
+                                class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-100">
+                                Batal
+                            </button>
+                            <button type="submit" 
+                                :disabled="selectedExportIds.length === 0"
+                                class="px-4 py-2 bg-[#262C5B] text-white rounded-lg text-sm font-bold hover:bg-[#1e234a] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                                <i class="fa-solid fa-file-pdf"></i> Download PDF
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </template>
     </div>
 </div>
 

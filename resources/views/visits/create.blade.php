@@ -1,7 +1,55 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-3xl mx-auto p-6">
+{{-- 
+    LOGIC PHP UNTUK TOMBOL BACK 
+    Menentukan arah kembali berdasarkan Role dan apakah ada Pasien yang dipilih
+--}}
+@php
+    $role = Auth::user()->role;
+    $backUrl = '#';
+    $labelBack = 'Kembali ke Daftar Pasien';
+
+    // 1. Tentukan Route Base (Index)
+    if ($role === 'staf_administrasi') {
+        $backUrl = route('staff_administrasi.datapasien.index');
+    } elseif ($role === 'nakes') {
+        $backUrl = route('nakes.datapasien');
+    } elseif ($role === 'dokter') {
+        $backUrl = route('dokter.datapasien');
+    } elseif ($role === 'admin') {
+        $backUrl = route('admin.patient.index');
+    }
+
+    // 2. Jika ada Selected Patient (dari URL), override ke Monitoring Show
+    if(isset($selectedPatient) && $selectedPatient) {
+        $labelBack = 'Kembali ke Rekam Medis ' . $selectedPatient->name;
+        
+        if ($role === 'staf_administrasi') {
+            $backUrl = route('staff_administrasi.monitoring.show', $selectedPatient->id);
+        } elseif ($role === 'nakes') {
+            $backUrl = route('nakes.monitoring.show', $selectedPatient->id);
+        } elseif ($role === 'dokter') {
+            $backUrl = route('dokter.monitoring.show', $selectedPatient->id);
+        } elseif ($role === 'admin') {
+            // Admin menggunakan User ID berdasarkan controller sebelumnya
+            $backUrl = route('admin.patient.show', $selectedPatient->user_id);
+        }
+    }
+@endphp
+
+<div class="max-w-5xl mx-auto p-6">
+    
+    {{-- TOMBOL BACK --}}
+    <div class="mb-6">
+        <a href="{{ $backUrl }}" class="inline-flex items-center text-gray-500 hover:text-[#262C5B] transition-colors font-medium group">
+            <div class="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center mr-3 group-hover:border-[#262C5B] group-hover:bg-[#262C5B] group-hover:text-white transition-all shadow-sm">
+                <i class="fa-solid fa-arrow-left text-sm"></i>
+            </div>
+            <span>{{ $labelBack }}</span>
+        </a>
+    </div>
+
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
         <h2 class="text-2xl font-bold text-[#262C5B] mb-6">Pendaftaran Kunjungan Baru</h2>
         
@@ -12,8 +60,14 @@
                 <div class="col-span-2">
                     <label class="block text-sm font-bold text-gray-700 mb-2">Pilih Pasien</label>
                     <select name="patient_id" class="w-full rounded-xl border-gray-300 focus:border-[#5DB8D8] focus:ring focus:ring-sky-200 transition">
+                        {{-- Opsi Default --}}
+                        <option value="" disabled {{ !isset($selectedPatient) ? 'selected' : '' }}>-- Cari Pasien --</option>
+                        
                         @foreach($patients as $p)
-                            <option value="{{ $p->id }}">{{ $p->no_rm }} - {{ $p->name }}</option>
+                            <option value="{{ $p->id }}" 
+                                {{ (isset($selectedPatient) && $selectedPatient->id == $p->id) ? 'selected' : '' }}>
+                                {{ $p->no_rm }} - {{ $p->name }}
+                            </option>
                         @endforeach
                     </select>
                 </div>

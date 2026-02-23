@@ -29,7 +29,7 @@ class UserSeeder extends Seeder
         
         // 2. Buat User Dokter
         $dokterUser = User::create([
-            'name' => 'Drg. Lia',
+            'name' => 'Dr. Lia',
             'email' => 'dokter@gmail.com',
             'phone' => '628123456789',
             'password' => Hash::make('password'),

@@ -48,7 +48,8 @@
                             nip: "{{ $item->dokter->nip }}",
                             education: "{{ $item->dokter->education }}",
                             specialization: "{{ $item->dokter->specialization }}",
-                            bio: `{{ $item->dokter->bio }}`
+                            bio: `{{ $item->dokter->bio }}`,
+                            status: "{{ $item->dokter->status }}",
                         })'
                             class="text-blue-600 hover:text-blue-800">
                             <i class="fas fa-edit"></i>

@@ -22,4 +22,20 @@ class PatientProfile extends Model
     {
         return $this->belongsTo(Patient::class);
     }
+
+    public function getMaritalStatusOptions()
+    {
+        return [
+            'single' => 'Belum Kawin',
+            'married' => 'Menikah',
+            'divorced' => 'Cerai',
+            'widowed' => 'Janda/Duda',
+        ];
+    }
+
+    public function getMaritalStatusLabelAttribute()
+    {
+        $options = $this->getMaritalStatusOptions();
+        return $options[$this->marital_status] ?? 'Tidak Diketahui';
+    }
 }   

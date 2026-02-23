@@ -84,9 +84,19 @@
         :class="sidebarOpen && '{{ auth()->user()->role }}' !== 'patient' ? 'md:ml-64' : 'md:ml-0'">
 
         {{-- SLOT KONTEN --}}
-        <main class="{{ auth()->check() && auth()->user()->role === 'patient' ? 'grow' : 'flex-1 pt-20 pb-8 px-4 md:px-8' }}">
+        <main class="{{ 
+            auth()->check() && in_array(auth()->user()->role, ['role1', 'role2', 'role3']) 
+                ? 'flex-1 pt-20 pb-8 px-4 md:px-8' 
+                : (auth()->user()->role === 'patient' 
+                    ? 'grow' 
+                    : (auth()->user()->role === 'admin' 
+                        ? 'flex-1 pt-8 pb-8 px-4 md:px-8' 
+                        : 'flex-1 pt-20 pb-8 px-4 md:px-8'
+                    )
+                ) 
+        }}">
             @yield('content')
-        </main>
+        </main>   
 
         {{-- FOOTER --}}
         <!-- @auth

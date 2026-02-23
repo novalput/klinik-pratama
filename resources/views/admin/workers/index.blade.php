@@ -120,19 +120,13 @@
                         </div>
                     </div>
 
-                    {{-- Alamat --}}
-                    <div>
-                        <label class="text-sm font-medium text-gray-600">Alamat</label>
-                        <input x-model="form.address"
-                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#4da4e3]">
-                    </div>
-
-                    {{-- Status --}}
-                    <!-- <div>
-                        <label class="text-sm font-medium text-gray-600">Status</label>
-                        <input x-model="form.status"
-                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#4da4e3]">
-                    </div> -->
+                </div>
+                    
+                {{-- Alamat --}}
+                <div>
+                    <label class="text-sm font-medium text-gray-600">Alamat</label>
+                    <textarea x-model="form.address"
+                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#4da4e3]"></textarea>
                 </div>
 
                 {{-- Status --}}

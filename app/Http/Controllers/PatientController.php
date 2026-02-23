@@ -26,7 +26,7 @@ class PatientController extends Controller
         }
 
         // Load relasi profile
-        $patients = $query->with('patientProfile')->latest()->paginate(15)->withQueryString();
+        $patients = $query->with('patientProfile')->orderBy('name', 'asc')->paginate(15)->withQueryString();
 
         return view('nakes.datapasien', compact('patients'));
     }

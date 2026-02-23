@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\StaffAdministrasiController as AdminStaffAdminist
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\MedicalVisitController;
+use App\Http\Controllers\ExportController;
 use App\Models\HealthVisit;
 
 /*
@@ -61,6 +62,9 @@ Route::middleware('auth')->group(function () {
     // Route Edit (Bisa diakses Staff Admin, Nakes, Dokter dengan permission view masing-masing)
     Route::get('/visits/{id}/edit', [MedicalVisitController::class, 'edit'])->name('visits.edit');
     Route::put('/visits/{id}', [MedicalVisitController::class, 'update'])->name('visits.update');
+
+    // Route Export PDF Rekam Medis
+    Route::post('/export/medical-record', [ExportController::class, 'medicalRecord'])->name('export.medical_record');
 });
 
 
@@ -178,8 +182,8 @@ Route::middleware(['auth', 'role:admin'])
         Route::prefix('workers')->name('workers.')->group(function () {
             Route::get('/', [AdminController::class, 'workers'])->name('index');
             Route::post('/storeWorkers', [AdminController::class, 'storeWorkers'])->name('storeWorkers');
-            Route::post('/updateWorkers', [AdminController::class, 'updateWorkers'])->name('updateWorkers');
-            Route::post('/destroyWorkers', [AdminController::class, 'destroyWorkers'])->name('destroyWorkers');
+            Route::put('/{id}', [AdminController::class, 'updateWorkers'])->name('update');
+            Route::delete('/{id}', [AdminController::class, 'destroyWorkers'])->name('destroy');
         });
         
         Route::get('patient', [AdminController::class, 'index'])

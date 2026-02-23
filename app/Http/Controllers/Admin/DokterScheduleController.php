@@ -13,9 +13,19 @@ class DokterScheduleController extends Controller
     // Halaman manajemen jadwal untuk 1 dokter spesifik
     public function manage($dokterId)
     {
-        $dokter = Dokter::with(['user', 'scheduleTemplates', 'scheduleExceptions' => function($q) {
-            $q->whereDate('date', '>=', now())->orderBy('date');
-        }])->findOrFail($dokterId);
+        $dokter = Dokter::with([
+            'user',
+            // MODIFIKASI DISINI: Tambahkan closure function untuk mengurutkan template
+            'scheduleTemplates' => function($q) {
+                // Menggunakan FIELD() agar urut sesuai urutan hari, bukan abjad
+                $q->orderByRaw("FIELD(day, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')");
+                // Opsional: Urutkan juga berdasarkan jam mulai
+                $q->orderBy('start_time');
+            },
+            'scheduleExceptions' => function($q) {
+                $q->whereDate('date', '>=', now())->orderBy('date');
+            }
+        ])->findOrFail($dokterId);
 
         return view('admin.dokter.schedule', compact('dokter'));
     }

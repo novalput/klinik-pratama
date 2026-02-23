@@ -132,16 +132,19 @@ class MedicalVisitController extends Controller
             'complaint' => 'nullable|string',
         ]);
 
-        DB::transaction(function() use ($request) {
+        $visit = DB::transaction(function() use ($request) {
             // 1. Staff Admin membuat Visit
             $visit = HealthVisit::create($request->all());
 
             // 2. Siapkan wadah Medical Record & Profile agar Perawat tinggal Edit
             MedicalRecord::firstOrCreate(['health_visit_id' => $visit->id]);
             PatientProfile::firstOrCreate(['patient_id' => $visit->patient_id]);
+
+            return $visit;
         });
 
-        return redirect()->route('staff_administrasi.datapasien.index')->with('success', 'Kunjungan dibuat. Menunggu pemeriksaan Nakes.');
+        return redirect()->route('staff_administrasi.monitoring.show', $visit->patient_id)
+            ->with('success', 'Kunjungan dibuat. Menunggu pemeriksaan Nakes.');
     }
 
     // --- STEP 2: FORM EDIT TERPADU (Admin, Nakes, Dokter) ---

@@ -168,8 +168,9 @@
                 {{-- Status --}}
                 <div>
                     <label class="text-sm font-medium text-gray-600">Status</label>
-                    <select x-model="form.status" required
+                    <select x-model="form.status" 
                         class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#4da4e3]">
+                        <option value="">-- Pilih Status --</option>
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </select>

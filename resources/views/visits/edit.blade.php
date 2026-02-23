@@ -1,45 +1,59 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-6xl mx-auto p-4 md:p-8">
+{{-- 
+    PERBAIKAN 1: x-data diletakkan di wrapper utama 
+    agar mencakup Tombol Back, Form, dan Modal sekaligus.
+--}}
+<div class="max-w-6xl mx-auto p-4 md:p-8" x-data="formDirtyChecker()">
     
     {{-- LOGIC: Tentukan Route Kembali berdasarkan Role --}}
     @php
-        $backRoute = url()->previous();
         $role = Auth::user()->role;
-        $patientId = $visit->patient_id;
+        $patient = $visit->patient; 
+        $labelBack = 'Kembali ke Rekam Medis ' . $patient->name;
 
-        if ($role === 'dokter') {
-            $backRoute = route('dokter.datapasien'); // Ubah ke datapasien agar lebih umum
-        } elseif ($role === 'staf_administrasi') {
-            $backRoute = route('staff_administrasi.datapasien');
+        if ($role === 'staf_administrasi') {
+            $backRoute = route('staff_administrasi.monitoring.show', $patient->id);
         } elseif ($role === 'nakes') {
-            $backRoute = route('nakes.datapasien');
+            $backRoute = route('nakes.monitoring.show', $patient->id);
+        } elseif ($role === 'dokter') {
+            $backRoute = route('dokter.monitoring.show', $patient->id);
         } elseif ($role === 'admin') {
-            $backRoute = route('admin.patient.index'); 
+            $backRoute = route('admin.patient.show', $patient->id);
+        } else {
+            $backRoute = '#';
+            $labelBack = 'Kembali';
         }
-        
+
         // Helper untuk cek dokter assignment
-        $loggedInDokterId = ($role === 'dokter' && Auth::user()->dokter) ? Auth::user()->dokter->id : null;
+        $loggedInDokterId = ($role === 'dokter' && Auth::user()->dokter) 
+            ? Auth::user()->dokter->id 
+            : null;
+
         $isAssignedDoctor = $visit->dokter_id == $loggedInDokterId;
-    @endphp
-    
-    @php
-        // Jika user adalah admin, kita paksa semua flag permission menjadi false
+
+        // Reset permission untuk admin (sesuai logic awal Anda)
         if (Auth::user()->role === 'admin') {
             $isAdmin = false;
             $isNurse = false;
             $isDokter = false;
         }
     @endphp
+
     {{-- Info Header dengan Tombol Kembali --}}
     <div class="flex items-center justify-between mb-8">
         <div class="flex items-center gap-4">
-            <a href="{{ $backRoute }}" 
-               class="flex items-center justify-center w-12 h-12 bg-white text-gray-400 rounded-2xl shadow-sm border border-gray-100 hover:bg-[#5DB8D8] hover:text-white hover:border-[#5DB8D8] transition-all duration-200 group"
-               title="Kembali">
+            {{-- 
+                PERBAIKAN 2: Menggunakan @click.prevent untuk memanggil confirmBack 
+                yang sekarang sudah dikenali karena berada dalam scope x-data utama 
+            --}}
+            <button type="button" 
+                @click.prevent="confirmBack('{{ $backRoute }}')"
+                class="flex items-center justify-center w-12 h-12 bg-white text-gray-400 rounded-2xl shadow-sm border border-gray-100 hover:bg-[#5DB8D8] hover:text-white hover:border-[#5DB8D8] transition-all duration-200 group"
+                title="Kembali">
                 <i class="fa-solid fa-arrow-left text-lg group-hover:-translate-x-1 transition-transform"></i>
-            </a>
+            </button>
 
             <div>
                 <h1 class="text-2xl font-bold text-[#262C5B]">Rekam Medis Pasien</h1>
@@ -63,7 +77,8 @@
         </div>
     </div>
 
-    <form action="{{ route('visits.update', $visit->id) }}" method="POST" class="space-y-8">
+    {{-- Form Utama (Tambahkan ID agar mudah diseleksi JS) --}}
+    <form id="medicalForm" action="{{ route('visits.update', $visit->id) }}" method="POST" class="space-y-8">
         @csrf
         @method('PUT')
 
@@ -75,7 +90,6 @@
             <h3 class="text-lg font-bold text-gray-800 mb-6 pl-4">Data Kunjungan (Administrasi)</h3>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pl-4">
-                {{-- Gunakan method yang benar: canEditAdministrasiData --}}
                 @php $isAdmin = $user->canEditAdministrasiData(); @endphp
 
                 <div>
@@ -128,9 +142,6 @@
                 $profile = $visit->patient->patientProfile;
                 $mr = $visit->medicalRecord;
                 
-                // Logic Permission:
-                // 1. Perawat asli -> Boleh
-                // 2. Dokter -> HANYA jika dia assigned dokter (Dokter lain read-only)
                 $basePermission = $user->canEditProfileAndVitals();
                 
                 if ($role === 'dokter') {
@@ -167,6 +178,23 @@
                             <label class="text-xs font-semibold text-gray-600 mb-1 block">Pekerjaan</label>
                             <input type="text" name="occupation" value="{{ $profile->occupation ?? '' }}" 
                                 class="w-full rounded-lg text-sm {{ $nurseClass }}" placeholder="{{ $nursePlaceholder }}" {{ !$isNurse ? 'readonly' : '' }}>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 py-2">
+                        <div>
+                            <label class="text-xs font-semibold text-gray-600 mb-1 block">Pendidikan</label>
+                            <input type="text" name="education" value="{{ $profile->education ?? '' }}" 
+                                class="w-full rounded-lg text-sm {{ $nurseClass }}" placeholder="{{ $nursePlaceholder }}" {{ !$isNurse ? 'readonly' : '' }}>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-600 mb-1 block">Status Kawin</label>
+                            <select name="marital_status" class="w-full rounded-lg text-sm {{ $nurseClass }}" {{ !$isNurse ? 'readonly' : '' }}>
+                                <option value="">Pilih Status</option>
+                                <option value="single" {{ $profile->marital_status == 'single' ? 'selected' : '' }}>Belum Kawin</option>
+                                <option value="married" {{ $profile->marital_status == 'married' ? 'selected' : '' }}>Kawin</option>
+                                <option value="divorced" {{ $profile->marital_status == 'divorced' ? 'selected' : '' }}>Cerai Hidup</option>
+                                <option value="widowed" {{ $profile->marital_status == 'widowed' ? 'selected' : '' }}>Cerai Mati</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -218,10 +246,7 @@
             </h3>
 
             @php 
-                // Logic Permission:
-                // Hanya boleh edit jika Role Dokter DAN ID-nya sesuai dengan kunjungan
                 $isDokter = ($role === 'dokter' && $isAssignedDoctor);
-
                 $dokterClass = $isDokter ? 'bg-white focus:ring-blue-400 border-gray-300' : 'bg-gray-50 text-gray-500 cursor-not-allowed border-gray-200';
                 $dokterPlaceholder = $isDokter ? '...' : 'Area terbatas (Bukan Dokter Penanggung Jawab)';
             @endphp
@@ -304,7 +329,6 @@
                             </div>
                         </template>
                     </div>
-                    <input type="hidden" name="medications" value="" x-if="medications.length === 0" disabled>
                 </div>
             </div>
 
@@ -316,7 +340,7 @@
             @endif
         </div>
 
-        {{-- TOMBOL SIMPAN (Hanya muncul jika user punya hak edit di salah satu bagian) --}}
+        {{-- TOMBOL SIMPAN --}}
         @if($isAdmin || $isNurse || $isDokter)
         <div class="sticky bottom-4 z-30 flex justify-end">
             <button type="submit" class="bg-[#262C5B] hover:bg-[#1e234a] text-white font-bold py-4 px-10 rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 flex items-center gap-3">
@@ -325,12 +349,61 @@
             </button>
         </div>
         @endif
-
     </form>
+
+    {{-- 
+        PERBAIKAN 3: Modal sekarang ada di dalam scope x-data utama,
+        bukan wrapper x-data sendiri.
+    --}}
+    <div x-show="showModal" x-cloak
+        class="fixed inset-0 flex items-center justify-center bg-black/50 z-[99] p-4">
+        <div class="bg-white rounded-xl p-8 w-full max-w-2xl shadow-lg border border-red-100">
+            <div class="flex items-center gap-3 mb-4 text-red-600">
+                <i class="fa-solid fa-triangle-exclamation text-4xl"></i>
+                <h2 class="text-2xl font-bold">Perubahan Terdeteksi!</h2>
+            </div>
+            
+            <p class="mb-4 text-lg text-gray-600">
+                Anda memiliki data yang belum disimpan. Yakin ingin kembali? Perubahan akan hilang.
+            </p>
+
+            {{-- List Perubahan --}}
+            <template x-if="dirtyFieldsList.length > 0">
+                <div class="mb-8 bg-red-50 p-5 rounded-xl border border-red-100 max-h-60 overflow-y-auto">
+                    <p class="text-sm font-bold text-red-800 mb-3 uppercase tracking-wider">Detail Field yang berubah:</p>
+                    
+                    {{-- FONT LIST: Ganti text-xs jadi text-base (standar) --}}
+                    <ul class="text-base text-gray-700 space-y-3">
+                        <template x-for="item in dirtyFieldsList" :key="item.field">
+                            <li class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-red-200 pb-2 last:border-0">
+                                <span class="font-bold w-1/3" x-text="item.field"></span>
+                                <div class="flex items-center gap-2 w-2/3">
+                                    <span class="line-through opacity-50 text-red-400" x-text="item.original || '(kosong)'"></span>
+                                    <i class="fa-solid fa-arrow-right text-gray-400 text-sm"></i>
+                                    <span class="text-blue-700 font-bold" x-text="item.current"></span>
+                                </div>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </template>
+
+            <div class="flex justify-end gap-3">
+                <button @click="cancel" class="px-4 py-2 text-sm font-bold text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                    Batal
+                </button>
+                <button @click="goBack" class="px-4 py-2 text-sm font-bold text-white bg-red-500 rounded-lg hover:bg-red-600 shadow-md hover:shadow-lg transition">
+                    Ya, Buang Perubahan
+                </button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 @push('scripts')
 <script>
+    // Logic Resep Obat
     function medicationHandler(existingData) {
         return {
             medications: Array.isArray(existingData) ? existingData : [],
@@ -338,6 +411,87 @@
             remove(index) { this.medications.splice(index, 1); }
         }
     }
+
+    // Logic Dirty Checker & Modal
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('formDirtyChecker', () => ({
+            originalData: {},
+            showModal: false,
+            backUrl: '',
+            dirtyFieldsList: [],
+
+            init() {
+                // Gunakan setTimeout agar data obat ter-render dulu jika ada
+                setTimeout(() => {
+                    const inputs = document.querySelectorAll('#medicalForm input, #medicalForm textarea, #medicalForm select');
+                    inputs.forEach(el => {
+                        // Simpan key berdasarkan name
+                        if(el.name) {
+                            this.originalData[el.name] = el.value;
+                        }
+                    });
+                    console.log('Initial Data Captured:', Object.keys(this.originalData).length, 'fields');
+                }, 100);
+            },
+
+            checkDirty() {
+                this.dirtyFieldsList = [];
+                let isDirty = false;
+
+                // Cek form saat ini
+                const currentInputs = document.querySelectorAll('#medicalForm input, #medicalForm textarea, #medicalForm select');
+                
+                currentInputs.forEach(el => {
+                    if(!el.name) return; // Skip jika tidak ada name
+
+                    const initialVal = this.originalData[el.name];
+                    const currentVal = el.value;
+
+                    // 1. Jika field sudah ada sejak awal dan berubah
+                    if (initialVal !== undefined && initialVal !== currentVal) {
+                        isDirty = true;
+                        this.dirtyFieldsList.push({
+                            field: el.name,
+                            original: initialVal,
+                            current: currentVal
+                        });
+                    }
+                    // 2. Jika field baru muncul (misal tambah obat dynamic) dan isinya tidak kosong
+                    else if (initialVal === undefined && currentVal !== '') {
+                        isDirty = true;
+                        this.dirtyFieldsList.push({
+                            field: el.name,
+                            original: '(Baru)',
+                            current: currentVal
+                        });
+                    }
+                });
+
+                return isDirty;
+            },
+
+            confirmBack(url) {
+                console.log('Tombol kembali diklik, tujuan:', url);
+                this.backUrl = url;
+                
+                if(this.checkDirty()) {
+                    console.log('Perubahan terdeteksi');
+                    this.showModal = true;
+                } else {
+                    console.log('Aman, langsung kembali');
+                    window.location.href = url;
+                }
+            },
+
+            goBack() {
+                window.location.href = this.backUrl;
+            },
+
+            cancel() {
+                this.showModal = false;
+            }
+        }))
+    })
 </script>
 @endpush
 @endsection
