@@ -67,7 +67,7 @@
                                     </div>
                                     <div class="text-xs text-gray-500 mt-1">
                                         <i class="fa-brands fa-whatsapp text-green-500 mr-1"></i> 
-                                        {{ $patient->phone ? '+62' . substr($patient->phone, 1) : '-' }}
+                                        {{ $patient->phone ? '+' . substr($patient->phone, 1) : '-' }}
                                     </div>
                                 </div>
                             </div>

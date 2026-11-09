@@ -35,7 +35,7 @@ class ExportController extends Controller
             'patient' => $patient,
             'visits' => $visits,
             'clinic_name' => "Klinik Pratama Ramah", // Ganti sesuai nama klinik
-            'clinic_address' => 'Jl. Lintas Seraya No. 104, RT 009/RW 004, Desa Bukit Menanti, Kecamatan Hulu Percha, Kota Serambi Tinggi, Sumatera Tengah, 39981.',
+            'clinic_address' => 'Jl. Santai Sejenak No. 11, Kel. Rehat, Kec. Tenang, Kabupaten Damai, Provinsi Tentram, 77122',
             'date_printed' => Carbon::now()->translatedFormat('d F Y'),
         ];
 

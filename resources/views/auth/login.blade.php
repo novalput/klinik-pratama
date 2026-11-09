@@ -179,7 +179,7 @@
                     </span>
                 </div>
 
-                <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center justify-between mb-4">
                     <label class="flex items-center text-sm text-gray-600 cursor-pointer">
                         <input type="checkbox" name="remember" class="mr-2 rounded border-gray-300"> Ingat saya
                     </label>
@@ -190,10 +190,10 @@
             </form>
         </div>
 
-        <div class="mt-auto text-center text-xs text-gray-500 py-6">
+        <div class="mt-auto text-center text-xs text-gray-500 py-2">
             <div class="mb-2">
                 <i class="bi bi-geo-alt-fill text-green-600"></i> 
-                Jl. Lintas Seraya No. 104, RT 009/RW 004, Desa Bukit Menanti, Kecamatan Hulu Percha, Kota Serambi Tinggi, Sumatera Tengah, 39981.
+                Jl. Santai Sejenak No. 11, Kel. Rehat, Kec. Tenang, Kabupaten Damai, Provinsi Tentram, 77122.
             </div>
             <div class="text-gray-400">
                 &copy; {{ date('Y') }} Klinik Pratama Ramah. All rights reserved.

@@ -12,7 +12,7 @@
         </div>
         <div>
             <h1 class="text-xl font-bold">Klinik Pratama</h1>
-            <p class="text-xs text-gray-400">Admin Panel</p>
+            <p class="text-xs text-white-400">Admin Panel</p>
         </div>
     </div>
 
