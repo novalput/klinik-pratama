@@ -1,6 +1,6 @@
-# 🦷 Sistem Informasi Klinik Pratama
+# 🏥 Sistem Informasi Klinik Pratama
 
-Sistem manajemen klinik gigi berbasis web yang dibangun menggunakan **Laravel 12** dengan fitur rekam medis elektronik, manajemen jadwal dokter, dan kontrol akses berbasis peran (Role-Based Access Control).
+Sistem manajemen klinik umum berbasis web yang dibangun menggunakan **Laravel 12** dengan fitur rekam medis elektronik, manajemen jadwal dokter, dan kontrol akses berbasis peran (Role-Based Access Control).
 
 ---
 
